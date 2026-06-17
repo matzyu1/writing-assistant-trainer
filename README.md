@@ -2,6 +2,14 @@
 
 Writing Assistant Trainer is a static browser app for improving the knowledge files used by a personal Custom GPT writing assistant. It helps collect safe demo writing scenarios, compare generated output with improved versions, and export updated markdown knowledge files.
 
+![Writing Assistant Trainer visual guide](assets/writing-assistant-trainer.gif)
+
+<p>
+  <a href="https://writing.matt-yu.com/custom-gpt-export.html" target="_blank" rel="noopener noreferrer">
+    Check out my work here!
+  </a>
+</p>
+
 ## Problem It Solves
 
 Custom GPTs do not automatically learn from a user's corrections. This project gives the user a structured loop for improving writing quality without uploading private documents into the public web app.
@@ -49,13 +57,9 @@ Repeat the loop until each document type has enough strong examples.
 
 ## Live Demo
 
-Live demo placeholder:
+Live demo:
 
-`https://<your-github-username>.github.io/writing-assistant-trainer/`
-
-Future custom domain:
-
-`https://writing.matt-yu.com/`
+`https://writing.matt-yu.com/custom-gpt-export.html`
 
 ## Portfolio Case Study Note
 
