@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Export a saved writing system into markdown files for uploading into a Custom GPT."
+    />
+    <title>Writing Assistant Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="custom-gpt-export">
+      <button class="sidebar-toggle-button" id="sidebar-toggle" type="button" aria-expanded="true" aria-controls="app-sidebar" aria-label="Hide progress sidebar" title="Hide progress sidebar">
+        <span class="sidebar-toggle-icon" aria-hidden="true"></span>
+        <span class="sr-only">Toggle progress sidebar</span>
+      </button>
+      <aside class="app-sidebar" id="app-sidebar" aria-label="Writing system navigation">
+        <div class="app-sidebar-scroll">
+        <a class="logo" href="custom-gpt-export.html" aria-label="Writing Assistant Trainer home">Writing Assistant Trainer</a>
+          <nav>
+            <a href="#required-document-trainer">Knowledge Trainer</a>
+            <a href="#gpt-training-loop">GTP Training Loop Progress</a>
+            <a href="#quality-check">Quality Check</a>
+            <a href="#download-knowledge">Download Knowledge</a>
+          </nav>
+          <section class="sidebar-training-progress" aria-labelledby="sidebar-training-title">
+            <p class="eyebrow">GTP Training Loop Progress</p>
+            <h2 id="sidebar-training-title">What needs examples</h2>
+            <div class="training-progress-grid sidebar" id="document-training-progress-grid" aria-label="Document trainer progress"></div>
+            <p class="tracker-next-action" id="document-next-best-action">Save a document to update training guidance.</p>
+          </section>
+        </div>
+      </aside>
+
+      <main class="export-main">
+        <section class="export-hero" aria-labelledby="export-title">
+          <div>
+            <p class="eyebrow">Writing Assistant Trainer</p>
+            <h1 id="export-title">Train the knowledge files until the GPT sounds like you.</h1>
+            <p>
+              Check weak document types, generate a test prompt, paste the Custom GPT output back here, save your
+              improved version and notes, then update the six knowledge files for manual upload.
+            </p>
+          </div>
+          <div class="quick-actions" aria-label="Dashboard quick actions">
+            <span>Workflow</span>
+            <a class="button secondary" href="#required-document-trainer">Knowledge Trainer</a>
+            <a class="button secondary" href="#gpt-training-loop">GTP Training Loop Progress</a>
+            <a class="button secondary" href="#quality-check">Run Quality Check</a>
+            <a class="button primary" href="#download-knowledge">Download Knowledge</a>
+          </div>
+        </section>
+
+        <section class="privacy-warning" role="note" aria-label="Privacy warning">
+          <strong>Privacy check</strong>
+          <p>
+            Do not upload private, sensitive, financial, legal, credential or personal identification documents into
+            a Custom GPT unless you are comfortable doing so.
+          </p>
+        </section>
+
+        <section class="document-trainer-panel" id="required-document-trainer" aria-labelledby="document-trainer-title">
+          <div class="feedback-heading">
+            <div>
+              <p class="eyebrow">Knowledge Trainer</p>
+              <h2 id="document-trainer-title">Generate a prompt, test it, then save the better version.</h2>
+              <p>
+                Choose a weak document type, copy the generated prompt into your Custom GPT, paste the GPT output
+                back here, then save your improved version and notes so the knowledge files get stronger.
+              </p>
+            </div>
+            <a class="button secondary" href="#download-knowledge">Update knowledge after saving</a>
+          </div>
+
+          <form class="feedback-form document-trainer-form" id="document-trainer-form">
+            <div class="form-grid">
+              <label for="document-type">
+                <span>Required document type</span>
+                <select id="document-type" name="documentType">
+                  <option value="LinkedIn post">LinkedIn post</option>
+                  <option value="README">README</option>
+                  <option value="Email">Email</option>
+                  <option value="LinkedIn message">LinkedIn message</option>
+                  <option value="Interview answer">Interview answer</option>
+                  <option value="CV bullets">CV bullets</option>
+                  <option value="Cover letter">Cover letter</option>
+                  <option value="Application question answer">Application question answer</option>
+                  <option value="Caption">Caption</option>
+                  <option value="Video script">Video script</option>
+                  <option value="Others">Others</option>
+                </select>
+              </label>
+              <label for="document-date">
+                <span>Date added</span>
+                <input id="document-date" name="dateAdded" type="date" />
+              </label>
+            </div>
+
+            <label class="scenario-picker-label" for="document-scenario-choice-button">
+              <span>Scenario</span>
+              <select class="scenario-native-select" id="document-scenario-choice" name="scenarioChoice" tabindex="-1" aria-hidden="true"></select>
+              <div class="scenario-picker">
+                <button class="scenario-choice-button" id="document-scenario-choice-button" type="button" aria-expanded="false" aria-controls="document-scenario-menu">
+                  <span id="document-scenario-choice-label">Scenario 1</span>
+                  <span aria-hidden="true">▾</span>
+                </button>
+                <div class="scenario-choice-menu" id="document-scenario-menu" role="listbox" hidden></div>
+              </div>
+            </label>
+
+            <label for="document-scenario">Selected scenario and context</label>
+            <textarea id="document-scenario" name="scenario" rows="7"></textarea>
+            <div class="feedback-actions">
+              <button class="button secondary" id="generate-document-scenario" type="button">Pick a scenario</button>
+            </div>
+
+            <label for="document-brief">Prompt to copy into Custom GPT</label>
+            <textarea id="document-brief" name="brief" rows="6" readonly></textarea>
+            <div class="feedback-actions">
+              <button class="button secondary" id="generate-document-prompt" type="button">Generate prompt</button>
+              <button class="button primary" id="copy-document-prompt" type="button">Copy prompt</button>
+            </div>
+
+            <label for="document-draft">Paste Custom GPT output here</label>
+            <textarea id="document-draft" name="draft" rows="8" placeholder="Paste the Custom GPT output here so the trainer can compare what needs improving."></textarea>
+
+            <label for="document-improved">Paste your improved version below</label>
+            <textarea id="document-improved" name="improved" rows="9" placeholder="Rewrite the output so it sounds more like you. This is the version added to the writing examples."></textarea>
+
+            <label for="document-context">Notes, corrections or banned patterns</label>
+            <textarea id="document-context" name="context" rows="5" placeholder="Example: ban this sentence structure, avoid this phrase, make openings more direct, keep paragraphs shorter, do not over-explain."></textarea>
+
+            <div class="feedback-actions">
+              <button class="button secondary" id="analyse-document" type="button">Preview knowledge update</button>
+              <button class="button primary" type="submit">Save and update knowledge</button>
+            </div>
+            <span id="document-trainer-status" role="status" aria-live="polite"></span>
+          </form>
+          <article class="document-analysis-panel" aria-labelledby="document-analysis-title">
+            <div>
+              <p class="eyebrow">Analysis Preview</p>
+              <h3 id="document-analysis-title">What will be added to the knowledge files</h3>
+            </div>
+            <pre id="document-analysis-preview">Choose a document type and type a draft to see the analysis.</pre>
+          </article>
+
+          <section class="writing-samples-panel" aria-labelledby="document-samples-title">
+            <div>
+              <p class="eyebrow">Direct Writing Samples</p>
+              <h3 id="document-samples-title">Improved versions saved into knowledge</h3>
+              <p>These are counted in GTP Training Loop Progress.</p>
+            </div>
+            <ul class="saved-sample-list" id="document-sample-list"></ul>
+          </section>
+        </section>
+
+        <section class="job-rules-panel retired-section" id="job-application-rules" aria-labelledby="job-rules-title">
+          <div class="feedback-heading">
+            <div>
+              <p class="eyebrow">Job Application Rules</p>
+              <h2 id="job-rules-title">Main rulebook for CVs, cover letters and applications.</h2>
+              <p>
+                These rules come before VoiceClone. VoiceClone can improve tone and clarity, but it must not override
+                CV structure, cover letter formatting, ATS needs, file naming or factual accuracy.
+              </p>
+            </div>
+            <a class="button secondary" href="#job-application-prompt-builder">Build a prompt</a>
+          </div>
+
+          <article class="rule-priority-note" aria-label="Rule priority">
+            <strong>Job application rules override VoiceClone tone rules whenever there is a conflict.</strong>
+            <ul>
+              <li>If VoiceClone suggests a longer answer but CV rules require one page, keep the CV one page.</li>
+              <li>If VoiceClone suggests a natural paragraph but CV rules require bullet points, follow the CV rule.</li>
+              <li>If VoiceClone suggests extra detail but the documents do not support it, do not add it.</li>
+              <li>If VoiceClone suggests a softer tone but job rules require ATS keywords, keep truthful ATS keywords.</li>
+            </ul>
+          </article>
+
+          <div class="job-rulebook-grid" id="job-rulebook-grid"></div>
+
+          <section class="job-prompt-builder" id="job-application-prompt-builder" aria-labelledby="job-builder-title">
+            <div>
+              <p class="eyebrow">Use with my Custom GPT</p>
+              <h3 id="job-builder-title">Build a job application prompt.</h3>
+            </div>
+            <form class="feedback-form compact-form" id="job-prompt-form">
+              <div class="form-grid">
+                <label for="job-output-type">
+                  <span>Output type</span>
+                  <select id="job-output-type" name="outputType">
+                    <option>Tailored CV</option>
+                    <option>Full cover letter</option>
+                    <option>Short cover letter</option>
+                    <option>What makes you suitable answer</option>
+                    <option>Application question answer</option>
+                    <option>Recruiter email</option>
+                    <option>LinkedIn message</option>
+                    <option>Interview answer</option>
+                    <option>Video CV script</option>
+                  </select>
+                </label>
+                <label class="toggle-row" for="job-tone-layer">
+                  <input id="job-tone-layer" name="useToneLayer" type="checkbox" checked />
+                  <span>Use VoiceClone tone layer</span>
+                </label>
+              </div>
+              <label for="job-description-input">Job description</label>
+              <textarea id="job-description-input" name="jobDescription" rows="7" placeholder="Paste the job description here"></textarea>
+              <label for="job-notes-input">Relevant experience or CV notes</label>
+              <textarea id="job-notes-input" name="cvNotes" rows="5" placeholder="Paste relevant CV evidence, projects, constraints or notes"></textarea>
+              <div class="feedback-actions">
+                <button class="button primary" id="generate-job-prompt" type="button">Generate job application prompt</button>
+                <button class="button secondary" id="copy-job-prompt" type="button">Copy job application prompt</button>
+              </div>
+              <article class="rule-conflict-check">
+                <h4>Rule Conflict Check</h4>
+                <ul>
+                  <li>Job application rules override tone preferences.</li>
+                  <li>Factual accuracy overrides style.</li>
+                  <li>CV structure overrides natural-flow preferences.</li>
+                  <li>File naming rules are mandatory.</li>
+                  <li>Cover letter formatting rules are mandatory.</li>
+                </ul>
+              </article>
+              <label for="job-prompt-preview">Generated prompt preview</label>
+              <textarea id="job-prompt-preview" rows="16" readonly></textarea>
+            </form>
+          </section>
+        </section>
+
+        <section class="feedback-loop-panel retired-section" id="feedback-loop" aria-labelledby="feedback-loop-title">
+          <div class="feedback-heading">
+            <div>
+              <p class="eyebrow">Feedback Loop</p>
+              <h2 id="feedback-loop-title">Save GPT test results and turn better outputs into examples.</h2>
+              <p>
+                Capture the original GPT output, your feedback and the improved version, then re-export the writing
+                system so the Custom GPT can learn from the correction.
+              </p>
+            </div>
+            <button class="button secondary" id="load-superstore-example" type="button">Load Superstore Example</button>
+          </div>
+
+          <article class="template-panel" aria-labelledby="superstore-template-title">
+            <div>
+              <p class="eyebrow">Reusable Example</p>
+              <h3 id="superstore-template-title">Superstore Power BI LinkedIn Post Example</h3>
+              <p>
+                Use this as a ready-made feedback pair when testing the Custom GPT with the Superstore Power BI
+                LinkedIn prompt.
+              </p>
+            </div>
+            <button class="button small secondary" id="copy-superstore-example" type="button">Copy Example</button>
+          </article>
+
+          <form class="feedback-form" id="save-gpt-test-result" aria-label="Save GPT test result">
+            <div class="form-heading">
+              <div>
+                <p class="eyebrow">Save GPT Test Result</p>
+                <h3>Store the test, feedback and improved version.</h3>
+              </div>
+              <span id="feedback-save-status" role="status" aria-live="polite"></span>
+            </div>
+
+            <label for="feedback-prompt">Test prompt</label>
+            <textarea id="feedback-prompt" name="prompt" rows="3" required></textarea>
+
+            <label for="feedback-original">Original GPT output</label>
+            <textarea id="feedback-original" name="original" rows="6"></textarea>
+
+            <label for="feedback-notes">My feedback</label>
+            <textarea id="feedback-notes" name="feedback" rows="5" required></textarea>
+
+            <label for="feedback-improved">Improved version</label>
+            <textarea id="feedback-improved" name="improved" rows="8" required></textarea>
+
+            <div class="form-grid">
+              <label for="feedback-category">
+                <span>Category</span>
+                <select id="feedback-category" name="category">
+                  <option>LinkedIn post</option>
+                  <option>Project writeup</option>
+                  <option>Interview answer</option>
+                  <option>Email</option>
+                  <option>README</option>
+                  <option>CV bullet</option>
+                  <option>Caption</option>
+                  <option>Video script</option>
+                  <option>Other</option>
+                </select>
+              </label>
+
+              <label for="feedback-content-type">
+                <span>Content type</span>
+                <select id="feedback-content-type" name="contentType">
+                  <option>Test result</option>
+                  <option>Good example</option>
+                  <option>Bad example</option>
+                  <option>Feedback pair</option>
+                </select>
+              </label>
+
+              <label for="feedback-date">
+                <span>Date added</span>
+                <input id="feedback-date" name="dateAdded" type="date" />
+              </label>
+            </div>
+
+            <label for="feedback-better">What made the improved version better</label>
+            <textarea id="feedback-better" name="better" rows="4"></textarea>
+
+            <div class="feedback-actions">
+              <button class="button secondary" type="submit" data-save-mode="feedback">Save to Feedback Loop</button>
+              <button class="button secondary" type="submit" data-save-mode="sample">Save improved version as Writing Sample</button>
+              <button class="button primary" type="submit" data-save-mode="both">Save both</button>
+            </div>
+          </form>
+
+          <div class="post-save-reminder" id="post-save-reminder" hidden>
+            <p>
+              Feedback saved. To improve your Custom GPT, re-export your files from Custom GPT Export, then update the
+              GPT Knowledge files in ChatGPT.
+            </p>
+            <div class="setup-copy-row">
+              <a class="button small primary" href="#quality-check">Go to Custom GPT Export</a>
+              <a class="button small secondary" href="#quality-check">Run Quality Check</a>
+              <a class="button small secondary" href="#writing-samples">Open Writing Samples</a>
+            </div>
+          </div>
+
+          <section class="writing-samples-panel" id="writing-samples" aria-labelledby="writing-samples-title">
+            <div>
+              <p class="eyebrow">Writing Samples</p>
+              <h3 id="writing-samples-title">Saved improved outputs</h3>
+              <p>Improved versions saved as writing samples will appear in the export and category filters.</p>
+            </div>
+            <ul class="saved-sample-list" id="saved-sample-list"></ul>
+          </section>
+        </section>
+
+        <section class="training-loop-panel" id="gpt-training-loop" aria-labelledby="training-loop-title">
+          <div class="feedback-heading">
+            <div>
+              <p class="eyebrow">GTP Training Loop Progress</p>
+              <h2 id="training-loop-title">Track enough examples without over-training.</h2>
+              <p>
+                Monitor feedback pairs by content type, see where the writing system is strong enough, and choose the
+                next useful test.
+              </p>
+            </div>
+            <a class="button secondary" href="#download-knowledge">Download Knowledge</a>
+          </div>
+
+          <div class="training-progress-grid" id="training-progress-grid" aria-label="Training loop progress"></div>
+
+          <article class="next-action-panel" aria-labelledby="next-action-title">
+            <p class="eyebrow">Next best action</p>
+            <h3 id="next-action-title">What to test next</h3>
+            <p id="next-best-action">Save feedback pairs to unlock training guidance.</p>
+          </article>
+
+          <section class="training-instructions-panel" aria-labelledby="training-instructions-title">
+            <p class="eyebrow">Training Loop Instructions</p>
+            <h3 id="training-instructions-title">Repeat this loop until each document type is sufficient.</h3>
+            <ol>
+              <li>Check which document types are lacking.</li>
+              <li>Choose that type in Knowledge Trainer.</li>
+              <li>Copy the generated prompt into your Custom GPT.</li>
+              <li>Paste the Custom GPT output back into Knowledge Trainer.</li>
+              <li>Paste your improved version and notes.</li>
+              <li>Save and update the knowledge files.</li>
+              <li>Manually upload the updated knowledge files to your Custom GPT.</li>
+            </ol>
+          </section>
+
+          <section class="minimum-loop-panel" aria-labelledby="minimum-loop-title">
+            <p class="eyebrow">Minimum Useful Loop Target</p>
+            <h3 id="minimum-loop-title">Aim for enough evidence, not endless tweaking.</h3>
+            <ul>
+              <li>LinkedIn posts: 3 to 5 feedback pairs</li>
+              <li>Interview answers: 3 to 5 feedback pairs</li>
+              <li>README: 2 to 3 feedback pairs</li>
+              <li>Emails: 2 to 3 feedback pairs</li>
+            </ul>
+            <p>
+              You do not need to loop forever. Stop once the content type reaches Good enough, unless future outputs
+              are still bad.
+            </p>
+          </section>
+
+          <section class="starter-task-panel retired-section" aria-labelledby="starter-task-title">
+            <div>
+              <p class="eyebrow">Starter Training Tasks</p>
+              <h3 id="starter-task-title">First tests to strengthen the tone system.</h3>
+            </div>
+            <div class="starter-task-grid" id="starter-task-grid"></div>
+          </section>
+
+          <section class="kpi-template-panel retired-section" aria-labelledby="kpi-template-title">
+            <div>
+              <p class="eyebrow">Reusable Template</p>
+              <h3 id="kpi-template-title">Clean KPI Card LinkedIn Post</h3>
+              <p>
+                Save this polished feedback pair as a strong LinkedIn post example for the training loop.
+              </p>
+            </div>
+            <div class="template-preview">
+              <strong>Content type</strong>
+              <p>LinkedIn post</p>
+              <strong>Focus</strong>
+              <p>KPI card formatting under slicers, custom formatted DAX measures and what the fix taught you.</p>
+            </div>
+            <button class="button primary" id="save-kpi-template" type="button">Save this example</button>
+            <span id="kpi-template-status" role="status" aria-live="polite"></span>
+          </section>
+
+          <section class="review-prompt-panel retired-section" id="chatgpt-review-prompt" aria-labelledby="review-prompt-title">
+            <div>
+              <p class="eyebrow">Ask ChatGPT to Review This Output</p>
+              <h3 id="review-prompt-title">Generate a review prompt for another ChatGPT chat.</h3>
+            </div>
+            <form class="feedback-form compact-form" id="review-prompt-form">
+              <label for="review-content-type">
+                <span>Content type</span>
+                <select id="review-content-type" name="contentType"></select>
+              </label>
+              <label for="review-test-prompt">Test prompt</label>
+              <textarea id="review-test-prompt" name="testPrompt" rows="3"></textarea>
+              <label for="review-original-output">Original GPT output</label>
+              <textarea id="review-original-output" name="originalOutput" rows="6"></textarea>
+              <div class="feedback-actions">
+                <button class="button secondary" id="generate-review-prompt" type="button">Generate review prompt</button>
+                <button class="button primary" id="copy-review-prompt" type="button">Copy review prompt</button>
+              </div>
+              <label for="review-generated-prompt">Generated prompt</label>
+              <textarea id="review-generated-prompt" rows="12" readonly></textarea>
+            </form>
+          </section>
+
+          <section class="review-save-panel retired-section" id="save-chatgpt-review" aria-labelledby="save-review-title">
+            <div>
+              <p class="eyebrow">Save ChatGPT Review Result</p>
+              <h3 id="save-review-title">Paste the review result and save it into the loop.</h3>
+            </div>
+            <form class="feedback-form compact-form" id="chatgpt-review-form">
+              <div class="form-grid">
+                <label for="chatgpt-review-content-type">
+                  <span>Content type</span>
+                  <select id="chatgpt-review-content-type" name="contentType"></select>
+                </label>
+                <label for="chatgpt-review-date">
+                  <span>Date added</span>
+                  <input id="chatgpt-review-date" name="dateAdded" type="date" />
+                </label>
+                <label class="toggle-row" for="chatgpt-review-good-sample">
+                  <input id="chatgpt-review-good-sample" name="saveAsSample" type="checkbox" checked />
+                  <span>Save as good writing sample</span>
+                </label>
+              </div>
+              <label for="chatgpt-review-test-prompt">Test prompt</label>
+              <textarea id="chatgpt-review-test-prompt" name="testPrompt" rows="3"></textarea>
+              <label for="chatgpt-review-original">Original GPT output</label>
+              <textarea id="chatgpt-review-original" name="originalOutput" rows="5"></textarea>
+              <label for="chatgpt-review-feedback">ChatGPT feedback</label>
+              <textarea id="chatgpt-review-feedback" name="feedback" rows="5"></textarea>
+              <label for="chatgpt-review-improved">Improved version</label>
+              <textarea id="chatgpt-review-improved" name="improved" rows="7"></textarea>
+              <label for="chatgpt-review-better">What made it better</label>
+              <textarea id="chatgpt-review-better" name="better" rows="4"></textarea>
+              <div class="feedback-actions">
+                <button class="button secondary" type="submit" data-review-save-mode="feedback">Save feedback pair</button>
+                <button class="button secondary" type="submit" data-review-save-mode="sample">Save improved version as Writing Sample</button>
+                <button class="button primary" type="submit" data-review-save-mode="both">Save both</button>
+              </div>
+              <span id="chatgpt-review-status" role="status" aria-live="polite"></span>
+            </form>
+          </section>
+        </section>
+
+        <section class="quality-panel" id="quality-check" aria-labelledby="quality-title">
+          <div class="quality-heading">
+            <div>
+              <p class="eyebrow">Quality Check</p>
+              <h2 id="quality-title">Review export safety before downloading.</h2>
+              <p>
+                Scan the generated markdown for weak content, sensitive data patterns, writing quality risks and
+                Custom GPT readiness. Warnings never block export.
+              </p>
+            </div>
+            <button class="button primary" id="run-quality-check" type="button">Run Quality Check</button>
+          </div>
+          <div class="quality-summary" aria-label="Quality check summary">
+            <article>
+              <span>Safe checks</span>
+              <strong id="safe-count">0</strong>
+            </article>
+            <article>
+              <span>Needs review</span>
+              <strong id="review-count">0</strong>
+            </article>
+            <article>
+              <span>Risky checks</span>
+              <strong id="risky-count">0</strong>
+            </article>
+          </div>
+          <div class="quality-results" id="quality-results" role="status" aria-live="polite">
+            <p class="empty-state">Run the quality check before you download or upload files.</p>
+          </div>
+        </section>
+
+        <section class="setup-health-panel retired-section" id="setup-health-check" aria-labelledby="setup-health-title">
+          <div class="quality-heading">
+            <div>
+              <p class="eyebrow">Setup Health Check</p>
+              <h2 id="setup-health-title">Check whether the export has enough saved data.</h2>
+              <p>
+                Review the writing samples, style rules, prompt templates, feedback pairs, job rules and tone layer
+                before downloading Custom GPT files.
+              </p>
+            </div>
+            <button class="button secondary" id="restore-defaults" type="button">Restore Default Rules and Prompts</button>
+          </div>
+          <div class="health-grid" id="setup-health-grid" aria-label="Setup health counts"></div>
+          <p class="health-status" id="setup-health-status">Checking setup...</p>
+        </section>
+
+        <section class="export-toolbar" id="download-knowledge" aria-label="Download Knowledge">
+          <div>
+            <p class="eyebrow">Download Knowledge</p>
+            <h2>Update the six knowledge files for your Custom GPT.</h2>
+            <label class="toggle-row" for="sample-mode">
+              <input id="sample-mode" type="checkbox" />
+              <span>Include full writing samples</span>
+            </label>
+            <p>Leave this off to export short excerpts only.</p>
+            <button class="button small secondary" id="select-safe-samples" type="button">Select all safe writing examples</button>
+          </div>
+          <div class="category-filter" id="sample-category-filter">
+            <strong>Writing sample categories</strong>
+            <div id="category-options" class="category-options"></div>
+          </div>
+          <div class="toolbar-actions">
+            <p class="export-safety-reminder">
+              To auto-update local files, click Connect Knowledge Folder and choose a local folder for the six
+              markdown knowledge files. After each saved improvement, upload the updated files from that folder to
+              your Custom GPT manually.
+            </p>
+            <button class="button secondary" id="connect-knowledge-folder" type="button">Connect Knowledge Folder</button>
+            <button class="button primary" id="download-all" type="button">Download Six Knowledge Files</button>
+            <button class="button secondary retired-action" id="copy-instructions" type="button">Copy Custom GPT Instructions</button>
+            <span class="copy-status inline-status" id="export-status" role="status" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section class="export-workspace" aria-label="Export files and preview">
+          <div class="export-file-grid" id="export-file-grid"></div>
+          <article class="preview-panel" aria-labelledby="preview-title">
+            <div class="preview-heading">
+              <div>
+                <p class="eyebrow">Preview</p>
+                <h2 id="preview-title">tone-guide.md</h2>
+              </div>
+              <select id="preview-select" aria-label="Choose export preview"></select>
+            </div>
+            <pre id="export-preview"></pre>
+          </article>
+        </section>
+
+        <section class="setup-guide retired-section" id="setup-guide" aria-labelledby="setup-title">
+          <div class="setup-heading">
+            <div>
+              <p class="eyebrow">Custom GPT Setup Guide</p>
+              <h2 id="setup-title">Create, upload and test the GPT carefully.</h2>
+            </div>
+            <button class="button secondary" type="button" data-copy-setup="guide">Copy Full Setup Guide</button>
+          </div>
+
+          <div class="setup-grid">
+            <article class="setup-step">
+              <span>Step 1</span>
+              <h3>Download the export files</h3>
+              <ul>
+                <li>Preview the files first.</li>
+                <li>Use excerpts only if the writing examples include personal or sensitive details.</li>
+                <li>Download all files.</li>
+              </ul>
+            </article>
+
+            <article class="setup-step">
+              <span>Step 2</span>
+              <h3>Create the Custom GPT</h3>
+              <ul>
+                <li>Go to ChatGPT.</li>
+                <li>Open Explore GPTs.</li>
+                <li>Click Create.</li>
+                <li>Open the Configure tab.</li>
+                <li>Name it <strong data-copy-source="name">Writing Assistant Trainer Demo</strong> or a similar name.</li>
+                <li>Open custom-gpt-instructions.md.</li>
+                <li>Copy everything inside it.</li>
+                <li>Paste it into the GPT Instructions box.</li>
+              </ul>
+              <div class="setup-copy-row">
+                <button class="button small secondary" type="button" data-copy-setup="name">Copy GPT Name</button>
+                <button class="button small secondary" type="button" data-copy-setup="instructions">Copy Instructions</button>
+              </div>
+            </article>
+
+            <article class="setup-step">
+              <span>Step 3</span>
+              <h3>Upload the Knowledge files</h3>
+              <p>Upload these markdown files into the GPT Knowledge section:</p>
+              <ul>
+                <li>tone-guide.md</li>
+                <li>style-rules.md</li>
+                <li>prompt-library.md</li>
+                <li>writing-examples.md</li>
+              </ul>
+              <p>
+                Optional: custom-gpt-setup-checklist.md. This checklist is mainly for you and is not essential for
+                the GPT.
+              </p>
+            </article>
+
+            <article class="setup-step test-prompts">
+              <span>Step 4</span>
+              <h3>Test the GPT</h3>
+              <div class="prompt-card">
+                <strong>Test 1</strong>
+                <p data-copy-source="test-1">Write a LinkedIn post about my Superstore Power BI project. Make it sound like me.</p>
+                <button class="button small secondary" type="button" data-copy-setup="test-1">Copy Test 1</button>
+              </div>
+              <div class="prompt-card">
+                <strong>Test 2</strong>
+                <p data-copy-source="test-2">Rewrite this project description in my style: [paste a rough project description]</p>
+                <button class="button small secondary" type="button" data-copy-setup="test-2">Copy Test 2</button>
+              </div>
+              <div class="prompt-card">
+                <strong>Test 3</strong>
+                <p data-copy-source="test-3">Write a 115-word interview answer for "Tell me about yourself" for a Junior AI Associate role.</p>
+                <button class="button small secondary" type="button" data-copy-setup="test-3">Copy Test 3</button>
+              </div>
+            </article>
+
+            <article class="setup-step">
+              <span>Step 5</span>
+              <h3>Improve the GPT</h3>
+              <div class="prompt-card">
+                <strong>Feedback example</strong>
+                <p data-copy-source="feedback">This is too polished. Make it more direct, more natural, and less like a LinkedIn influencer.</p>
+                <button class="button small secondary" type="button" data-copy-setup="feedback">Copy Feedback</button>
+              </div>
+              <p>
+                If the GPT improves after feedback, save that feedback back into the web app under Feedback Loop.
+                Then re-export the files later.
+              </p>
+            </article>
+
+            <article class="setup-step update-checklist">
+              <span>After re-export</span>
+              <h3>Custom GPT update checklist</h3>
+              <ul>
+                <li>Open your Custom GPT settings.</li>
+                <li>Replace old Knowledge files with updated files.</li>
+                <li>Upload tone-guide.md.</li>
+                <li>Upload style-rules.md.</li>
+                <li>Upload prompt-library.md.</li>
+                <li>Upload writing-examples.md.</li>
+                <li>Update Instructions if custom-gpt-instructions.md changed.</li>
+                <li>Test again with the same prompt.</li>
+                <li>Save the new result back into Feedback Loop if it improves.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

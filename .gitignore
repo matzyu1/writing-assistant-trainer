@@ -1,0 +1,32 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+
+# Local exports and private writing samples
+exports/
+knowledge-files/
+Replicating tone/
+*.local.md
+private/
+samples/private/
