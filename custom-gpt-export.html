@@ -27,7 +27,6 @@
         <a class="logo" href="custom-gpt-export.html" aria-label="Writing Assistant Trainer home">Writing Assistant Trainer</a>
           <nav>
             <a href="#required-document-trainer">Knowledge Trainer</a>
-            <a href="#gpt-training-loop">GTP Training Loop Progress</a>
             <a href="#quality-check">Quality Check</a>
             <a href="#download-knowledge">Download Knowledge</a>
           </nav>
@@ -53,7 +52,6 @@
           <div class="quick-actions" aria-label="Dashboard quick actions">
             <span>Workflow</span>
             <a class="button secondary" href="#required-document-trainer">Knowledge Trainer</a>
-            <a class="button secondary" href="#gpt-training-loop">GTP Training Loop Progress</a>
             <a class="button secondary" href="#quality-check">Run Quality Check</a>
             <a class="button primary" href="#download-knowledge">Download Knowledge</a>
           </div>
@@ -77,7 +75,6 @@
                 back here, then save your improved version and notes so the knowledge files get stronger.
               </p>
             </div>
-            <a class="button secondary" href="#download-knowledge">Update knowledge after saving</a>
           </div>
 
           <form class="feedback-form document-trainer-form" id="document-trainer-form">
@@ -347,27 +344,7 @@
           </section>
         </section>
 
-        <section class="training-loop-panel" id="gpt-training-loop" aria-labelledby="training-loop-title">
-          <div class="feedback-heading">
-            <div>
-              <p class="eyebrow">GTP Training Loop Progress</p>
-              <h2 id="training-loop-title">Track enough examples without over-training.</h2>
-              <p>
-                Monitor feedback pairs by content type, see where the writing system is strong enough, and choose the
-                next useful test.
-              </p>
-            </div>
-            <a class="button secondary" href="#download-knowledge">Download Knowledge</a>
-          </div>
-
-          <div class="training-progress-grid" id="training-progress-grid" aria-label="Training loop progress"></div>
-
-          <article class="next-action-panel" aria-labelledby="next-action-title">
-            <p class="eyebrow">Next best action</p>
-            <h3 id="next-action-title">What to test next</h3>
-            <p id="next-best-action">Save feedback pairs to unlock training guidance.</p>
-          </article>
-
+        <section class="training-loop-panel" id="gpt-training-loop" aria-label="Training loop guidance">
           <section class="training-instructions-panel" aria-labelledby="training-instructions-title">
             <p class="eyebrow">Training Loop Instructions</p>
             <h3 id="training-instructions-title">Repeat this loop until each document type is sufficient.</h3>
@@ -550,13 +527,33 @@
           </div>
           <div class="toolbar-actions">
             <p class="export-safety-reminder">
-              To auto-update local files, click Connect Knowledge Folder and choose a local folder for the six
-              markdown knowledge files. After each saved improvement, upload the updated files from that folder to
-              your Custom GPT manually.
+              Copy the instruction block for quick tests. When you are ready for a fuller refresh, download the six
+              Markdown files and upload them to your Custom GPT manually.
             </p>
-            <button class="button secondary" id="connect-knowledge-folder" type="button">Connect Knowledge Folder</button>
+            <article class="instruction-sync-panel" aria-labelledby="instruction-sync-title">
+              <div class="instruction-sync-heading">
+                <div>
+                  <p class="eyebrow">Quick Test Mode</p>
+                  <h3 id="instruction-sync-title">Copy one instruction block, then download Markdown later.</h3>
+                </div>
+                <span class="sync-pill" id="export-sync-status">MD files need regeneration</span>
+              </div>
+              <textarea
+                id="instruction-block-preview"
+                rows="8"
+                readonly
+                aria-label="Generated instruction text block"
+                placeholder="Click Regenerate all outputs to create the latest instruction block."
+              ></textarea>
+              <p class="markdown-update-reminder" id="markdown-update-reminder" role="status" aria-live="polite">
+                Regenerate outputs after changing trainer rules so the text block and Markdown files stay consistent.
+              </p>
+              <div class="instruction-actions">
+                <button class="button secondary" id="regenerate-outputs" type="button">Regenerate all outputs</button>
+                <button class="button primary" id="copy-instructions" type="button">Copy Instructions</button>
+              </div>
+            </article>
             <button class="button primary" id="download-all" type="button">Download Six Knowledge Files</button>
-            <button class="button secondary retired-action" id="copy-instructions" type="button">Copy Custom GPT Instructions</button>
             <span class="copy-status inline-status" id="export-status" role="status" aria-live="polite"></span>
           </div>
         </section>
@@ -623,10 +620,11 @@
                 <li>style-rules.md</li>
                 <li>prompt-library.md</li>
                 <li>writing-examples.md</li>
+                <li>feedback-rules.md</li>
               </ul>
               <p>
-                Optional: custom-gpt-setup-checklist.md. This checklist is mainly for you and is not essential for
-                the GPT.
+                Keep any setup checklist as a local note. The GPT knowledge upload should stay focused on the
+                generated Markdown knowledge files.
               </p>
             </article>
 

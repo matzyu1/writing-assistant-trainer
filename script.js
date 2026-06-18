@@ -312,7 +312,11 @@ if (customGptExport) {
   const previewTitle = document.querySelector("#preview-title");
   const preview = document.querySelector("#export-preview");
   const downloadAllButton = document.querySelector("#download-all");
+  const regenerateOutputsButton = document.querySelector("#regenerate-outputs");
   const copyInstructionsButton = document.querySelector("#copy-instructions");
+  const instructionBlockPreview = document.querySelector("#instruction-block-preview");
+  const exportSyncStatus = document.querySelector("#export-sync-status");
+  const markdownUpdateReminder = document.querySelector("#markdown-update-reminder");
   const fullSamplesInput = document.querySelector("#sample-mode");
   const categoryOptions = document.querySelector("#category-options");
   const exportStatus = document.querySelector("#export-status");
@@ -372,14 +376,15 @@ if (customGptExport) {
   const setupHealthStatus = document.querySelector("#setup-health-status");
   const restoreDefaultsButton = document.querySelector("#restore-defaults");
   const selectSafeSamplesButton = document.querySelector("#select-safe-samples");
-  const connectKnowledgeFolderButton = document.querySelector("#connect-knowledge-folder");
   const feedbackStorageKey = "voiceclone-feedback-loop";
   const writingSamplesStorageKey = "voiceclone-writing-samples";
   const directWritingStorageKey = "voiceclone-direct-writing-trainer";
   const defaultStyleRulesStorageKey = "voiceclone-default-style-rules";
   const defaultPromptTemplatesStorageKey = "voiceclone-default-prompt-templates";
   let safeSamplesOnly = false;
-  let knowledgeDirectoryHandle = null;
+  let exportSnapshot = null;
+  let lastCopiedSignature = "";
+  let lastDownloadedSignature = "";
   const sidebarCollapsedStorageKey = "voiceclone-sidebar-collapsed";
 
   const setSidebarCollapsed = (isCollapsed) => {
@@ -778,8 +783,8 @@ A KPI card might look simple, but if it is not formatted properly, it can affect
     "style-rules.md": "Active writing rules grouped by do, avoid, formatting, tone and platform-specific.",
     "prompt-library.md": "Saved prompt templates grouped by content type with variables and usage notes.",
     "writing-examples.md": "Selected writing samples grouped by category with context and excerpts or full text.",
+    "feedback-rules.md": "Correction notes, banned patterns and feedback priorities from saved training rounds.",
     "custom-gpt-instructions.md": "A ready-to-paste instruction block for the Custom GPT builder.",
-    "custom-gpt-setup-checklist.md": "A short setup and testing checklist for the Custom GPT.",
   };
 
   const normaliseText = (value) => {
@@ -1730,6 +1735,8 @@ Rules:
   };
 
   const renderTrainingLoop = () => {
+    if (!trainingProgressGrid || !nextBestAction) return;
+
     const stats = getTrainingStats();
 
     renderTrainingCards(trainingProgressGrid, stats);
@@ -2160,7 +2167,7 @@ ${improvedSection}`;
 
 You help me write in my own voice.
 
-Use the uploaded tone guide, style rules, prompt library and writing examples as your main reference. Preserve my meaning while improving clarity, structure and readability.
+Use the uploaded tone guide, style rules, prompt library, writing examples and feedback rules as your main reference. Preserve my meaning while improving clarity, structure and readability.
 
 Follow these rules:
 
@@ -2201,6 +2208,7 @@ When the user asks for new writing, first infer the content type and audience. I
 - [ ] Upload style-rules.md.
 - [ ] Upload prompt-library.md.
 - [ ] Upload writing-examples.md.
+- [ ] Upload feedback-rules.md.
 - [ ] Test with one LinkedIn post.
 - [ ] Test with one project writeup.
 - [ ] Test with one interview answer.
@@ -2208,13 +2216,49 @@ When the user asks for new writing, first infer the content type and audience. I
 - [ ] Add direct writing practice samples for weak document types.
 `;
 
+  const buildFeedbackRules = () => {
+    const feedbackRecords = loadStoredList(feedbackStorageKey);
+    const directSamples = getDirectWritingItems();
+    const savedWritingSamples = data.samples;
+    const notes = [
+      ...feedbackRecords.map((item) => item.feedback || item.better || item.notes || ""),
+      ...directSamples.map((item) => item.context || item.better || ""),
+      ...savedWritingSamples.map((record) => getSampleContext(record) || ""),
+    ]
+      .map((entry) => normaliseText(entry).trim())
+      .filter(Boolean);
+
+    const noteLines =
+      notes.length > 0
+        ? notes.slice(0, 24).map((note) => `- ${note.replace(/\s+/g, " ")}`).join("\n")
+        : "- No saved correction notes yet. Add feedback in Knowledge Trainer to make this file more specific.";
+
+    return `# Feedback Rules
+
+Use these rules when improving or drafting text from the writing assistant.
+
+## Core Correction Rules
+
+- Treat saved improved versions as stronger evidence than first-draft GPT outputs.
+- Avoid repeating wording, structures or habits that the user has corrected before.
+- Prefer direct, specific, grounded writing over generic polished language.
+- Preserve truthful evidence and never invent personal details, results, credentials or experience.
+- Follow banned patterns and correction notes from Knowledge Trainer before adding stylistic polish.
+- If feedback conflicts with the tone guide, use the more recent and more specific feedback.
+
+## Saved Correction Notes
+
+${noteLines}
+`;
+  };
+
   const buildFiles = () => ({
     "tone-guide.md": buildToneGuide(),
     "style-rules.md": buildStyleRules(),
     "prompt-library.md": buildPromptLibrary(),
     "writing-examples.md": buildWritingExamples(),
+    "feedback-rules.md": buildFeedbackRules(),
     "custom-gpt-instructions.md": buildCustomGptInstructions(),
-    "custom-gpt-setup-checklist.md": buildSetupChecklist(),
   });
 
   const buildSetupGuideText = () => `Custom GPT Setup Guide
@@ -2240,11 +2284,10 @@ Upload these markdown files into the GPT Knowledge section:
 - style-rules.md
 - prompt-library.md
 - writing-examples.md
+- feedback-rules.md
 
 Optional:
-- custom-gpt-setup-checklist.md
-
-custom-gpt-setup-checklist.md is mainly for you and is not essential for the GPT.
+- Keep a local setup checklist for your own testing notes.
 
 Step 4: Test the GPT
 Test 1:
@@ -2525,7 +2568,7 @@ If the GPT improves after feedback, save that feedback back into the web app und
       );
     }
 
-    const requiredFiles = ["custom-gpt-instructions.md", "tone-guide.md", "style-rules.md", "prompt-library.md", "writing-examples.md"];
+    const requiredFiles = ["custom-gpt-instructions.md", "tone-guide.md", "style-rules.md", "prompt-library.md", "writing-examples.md", "feedback-rules.md"];
     requiredFiles.forEach((fileName) => {
       if (!files[fileName] || !files[fileName].trim()) {
         addIssue(issues, fileName, "Custom GPT readiness", "Risky", `${fileName} is missing or empty.`, "Regenerate the export before upload.");
@@ -2704,6 +2747,98 @@ If the GPT improves after feedback, save that feedback back into the web app und
     setStatus("Copy blocked. Text selected below.");
   };
 
+  const getExportSignature = (files = buildFiles()) => JSON.stringify(files);
+
+  const renderInstructionSnapshot = () => {
+    instructionBlockPreview.value = exportSnapshot
+      ? exportSnapshot.instructions
+      : "";
+  };
+
+  const updateExportSyncStatus = () => {
+    const currentSignature = getExportSignature();
+    const hasSnapshot = Boolean(exportSnapshot);
+    const isSnapshotCurrent = hasSnapshot && exportSnapshot.signature === currentSignature;
+
+    exportSyncStatus.dataset.state = isSnapshotCurrent ? "ready" : "stale";
+
+    if (!hasSnapshot) {
+      exportSyncStatus.textContent = "MD files need regeneration";
+      markdownUpdateReminder.textContent =
+        "Regenerate outputs after changing trainer rules so the text block and Markdown files stay consistent.";
+      return;
+    }
+
+    if (!isSnapshotCurrent) {
+      exportSyncStatus.textContent = lastCopiedSignature ? "Rules changed since last copy" : "MD files need regeneration";
+      markdownUpdateReminder.textContent =
+        "Trainer data changed. Regenerate all outputs before copying instructions or downloading Markdown files.";
+      return;
+    }
+
+    if (lastCopiedSignature === exportSnapshot.signature) {
+      exportSyncStatus.textContent = "Text block and MD files are up to date";
+    } else {
+      exportSyncStatus.textContent = "Latest MD files ready to download";
+    }
+
+    markdownUpdateReminder.textContent =
+      "Updated Markdown files are also available. Download them when you are ready to refresh your GPT knowledge files.";
+  };
+
+  const regenerateAllOutputs = (message = "All outputs regenerated.") => {
+    const files = buildFiles();
+    exportSnapshot = {
+      signature: getExportSignature(files),
+      files,
+      instructions: files["custom-gpt-instructions.md"],
+    };
+    renderInstructionSnapshot();
+    renderExports();
+    if (qualityResults.dataset.checked === "true") runQualityCheck();
+    updateExportSyncStatus();
+    setStatus(message);
+  };
+
+  const requireCurrentExportSnapshot = () => {
+    const currentSignature = getExportSignature();
+
+    if (!exportSnapshot) {
+      updateExportSyncStatus();
+      setStatus("Regenerate all outputs first.");
+      return false;
+    }
+
+    if (exportSnapshot.signature !== currentSignature) {
+      updateExportSyncStatus();
+      setStatus("Rules changed. Regenerate all outputs first.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const downloadMarkdownSnapshot = ({ regenerate = false } = {}) => {
+    if (regenerate || !exportSnapshot || exportSnapshot.signature !== getExportSignature()) {
+      regenerateAllOutputs("Markdown files refreshed.");
+    }
+
+    if (!requireCurrentExportSnapshot()) return;
+
+    qualityResults.dataset.checked = "true";
+    runQualityCheck();
+    Object.entries(exportSnapshot.files).forEach(([filename, content], index) => {
+      window.setTimeout(() => downloadFile(filename, content), index * 160);
+    });
+    lastDownloadedSignature = exportSnapshot.signature;
+    updateExportSyncStatus();
+    setStatus("Latest Markdown downloads started.");
+  };
+
+  const markExportDirty = () => {
+    updateExportSyncStatus();
+  };
+
   const renderCategories = () => {
     refreshSampleCategories();
 
@@ -2733,6 +2868,7 @@ If the GPT improves after feedback, save that feedback back into the web app und
         renderExports();
         renderSetupHealth();
         if (qualityResults.dataset.checked === "true") runQualityCheck();
+        markExportDirty();
       });
     });
   };
@@ -2863,36 +2999,6 @@ If the GPT improves after feedback, save that feedback back into the web app und
       : "Generate a prompt, paste the Custom GPT output, add your improved version and notes, then preview the knowledge update.";
   };
 
-  const writeKnowledgeFilesToFolder = async () => {
-    if (!knowledgeDirectoryHandle) return false;
-
-    const files = buildFiles();
-    await Promise.all(
-      Object.entries(files).map(async ([filename, content]) => {
-        const fileHandle = await knowledgeDirectoryHandle.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(content);
-        await writable.close();
-      })
-    );
-
-    return true;
-  };
-
-  const syncKnowledgeFolder = async (message = "Knowledge files updated in connected folder.") => {
-    if (!knowledgeDirectoryHandle) return false;
-
-    try {
-      await writeKnowledgeFilesToFolder();
-      setStatus(message);
-      return true;
-    } catch {
-      setStatus("Folder update blocked. Reconnect the knowledge folder.");
-      knowledgeDirectoryHandle = null;
-      return false;
-    }
-  };
-
   const refreshAfterSave = () => {
     refreshData();
     renderCategories();
@@ -2905,7 +3011,7 @@ If the GPT improves after feedback, save that feedback back into the web app und
     renderDocumentTrainingTracker();
     renderSetupHealth();
     if (qualityResults.dataset.checked === "true") runQualityCheck();
-    syncKnowledgeFolder("Knowledge files auto-updated in connected folder.");
+    markExportDirty();
   };
 
   const renderExports = () => {
@@ -2948,9 +3054,13 @@ If the GPT improves after feedback, save that feedback back into the web app und
   fullSamplesInput.addEventListener("change", () => {
     renderExports();
     if (qualityResults.dataset.checked === "true") runQualityCheck();
+    markExportDirty();
   });
 
-  restoreDefaultsButton.addEventListener("click", restoreDefaultRulesAndPrompts);
+  restoreDefaultsButton.addEventListener("click", () => {
+    restoreDefaultRulesAndPrompts();
+    markExportDirty();
+  });
 
   selectSafeSamplesButton.addEventListener("click", () => {
     safeSamplesOnly = true;
@@ -2961,6 +3071,7 @@ If the GPT improves after feedback, save that feedback back into the web app und
     renderExports();
     renderSetupHealth();
     if (qualityResults.dataset.checked === "true") runQualityCheck();
+    markExportDirty();
     setStatus("Selected all safe writing examples.");
   });
 
@@ -2971,35 +3082,23 @@ If the GPT improves after feedback, save that feedback back into the web app und
   });
 
   downloadAllButton.addEventListener("click", () => {
-    qualityResults.dataset.checked = "true";
-    runQualityCheck();
-    Object.entries(buildFiles()).forEach(([filename, content], index) => {
-      window.setTimeout(() => downloadFile(filename, content), index * 160);
-    });
-    setStatus("Downloads started.");
+    downloadMarkdownSnapshot({ regenerate: true });
   });
 
-  connectKnowledgeFolderButton.addEventListener("click", async () => {
-    if (!window.showDirectoryPicker) {
-      setStatus("Folder sync is not supported in this browser. Use Download Six Knowledge Files instead.");
-      return;
-    }
-
-    try {
-      knowledgeDirectoryHandle = await window.showDirectoryPicker({ mode: "readwrite" });
-      await writeKnowledgeFilesToFolder();
-      setStatus("Knowledge folder connected and files updated.");
-    } catch {
-      setStatus("Folder connection cancelled or blocked.");
-    }
+  regenerateOutputsButton.addEventListener("click", () => {
+    regenerateAllOutputs("Instruction block and Markdown files regenerated.");
   });
 
   copyInstructionsButton.addEventListener("click", async () => {
-    const content = buildCustomGptInstructions();
+    if (!requireCurrentExportSnapshot()) return;
+
+    const content = exportSnapshot.instructions;
 
     try {
       await copyText(content);
-      setStatus("Instructions copied.");
+      lastCopiedSignature = exportSnapshot.signature;
+      updateExportSyncStatus();
+      setStatus("Instructions copied. Markdown files are also ready.");
     } catch {
       showManualCopy(content);
     }
@@ -3284,4 +3383,6 @@ ${superstoreExample.better}`;
   renderTrainingLoop();
   renderDocumentTrainingTracker();
   renderSetupHealth();
+  renderInstructionSnapshot();
+  updateExportSyncStatus();
 }
